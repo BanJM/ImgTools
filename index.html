@@ -2,7 +2,17 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>MCNEX 이미지 계산툴</title>    
+        <title>MCNEX 이미지 계산툴</title>
+        <style>
+            .photoFrame{
+              width: 400px;
+              height: 400px;
+              background-size: auto;
+            }
+            .photoFrame:hover{
+              cursor: pointer;
+            }
+        </style>    
     </head>
     <body>
         <a href="https://gw.mcnex.com/">[MCNEX 홈페이지]</a>
@@ -11,12 +21,34 @@
         <a href="http://pms.mcnex.com/">[MCNEX PMS]</a>
         <br>
         <br>
-        <script>
-            function printDate() 
-            {
-                document.getElementById("date").innerHTML = Date();
-            }
-        </script>
+        
+        <input type="file" id="fileInput">
+        <br>
+        <div id = "pictures"></div>
+        
+
         <!--<img src="./Image/Intro.png" width="480" height="360">-->
     </body>
+    <script>
+        var fileInput = document.getElementById("fileInput");
+        //값이 변경될때 호출 되는 이벤트 리스너
+        fileInput.addEventListener('change',function(e){
+            var file = e.target.files[0]; //선택된 파일
+            var reader = new FileReader();
+            reader.readAsDataURL(file); //파일을 읽는 메서드 
+
+            reader.onload = function(){
+                var photoFrame = document.createElement("div");
+                photoFrame.style = `background : url(${reader.result}); background-size : 100% 100%`;
+                photoFrame.className = "photoFrame";
+                document.getElementById("pictures").appendChild(photoFrame);
+
+                photoFrame.addEventListener("click",function(){
+                    document.getElementById("pictures").removeChild(photoFrame);
+                    e.target.value = "";
+                })
+            }
+        })
+
+    </script>
 </html>
