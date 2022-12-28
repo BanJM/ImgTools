@@ -5,9 +5,9 @@
         <title>MCNEX 이미지 계산툴</title>
         <style>
             .photoFrame{
-              width: 400px;
-              height: 400px;
-              background-size: auto;
+              width: 640px;
+              height: 480px;
+              float: left;
             }
             .photoFrame:hover{
               cursor: pointer;
@@ -23,7 +23,6 @@
         <br>
         
         <input type="file" id="fileInput">
-        <br>
         <div id = "pictures"></div>
         
 
@@ -41,6 +40,7 @@
                 var photoFrame = document.createElement("div");
                 photoFrame.style = `background : url(${reader.result}); background-size : 100% 100%`;
                 photoFrame.className = "photoFrame";
+                
                 document.getElementById("pictures").appendChild(photoFrame);
 
                 photoFrame.addEventListener("click",function(){
