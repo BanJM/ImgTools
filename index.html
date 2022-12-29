@@ -1,54 +1,152 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>MCNEX 이미지 계산툴</title>
-        <style>
-            .photoFrame{
-              width: 640px;
-              height: 480px;
-              float: left;
-            }
-            .photoFrame:hover{
-              cursor: pointer;
-            }
-        </style>    
-    </head>
-    <body>
-        <a href="https://gw.mcnex.com/">[MCNEX 홈페이지]</a>
-        <a href="http://100.100.100.30:8081/Authority/Login">[MCNEX PLM]</a>
-        <a href="http://erp.mcnex.com:8100/">[MCNEX ERP]</a>
-        <a href="http://pms.mcnex.com/">[MCNEX PMS]</a>
+
+<head>
+    <meta charset="utf-8">
+    <title>MCNEX 이미지 계산툴</title>
+    <script async src="https://docs.opencv.org/3.4/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <style>
+        
+        h1{
+            
+            padding-right: 10px;
+        }
+        a{
+            float:right;
+            padding-right: 10px;
+        }
+
+        .imgbox{
+            float:left;
+            margin-left: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+            border: 1px solid black;
+        }
+
+        #header{
+            height: 50px;
+            background:#ccc;
+        }
+        #contents{
+            height: 1200px;
+            border: 2px solid black;
+        }
+        #footer{
+            height: 40px;
+            background: #ccc;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <a href="http://pms.mcnex.com/">[MCNEX PMS]</a>
+    <a href="http://erp.mcnex.com:8100/">[MCNEX ERP]</a>
+    <a href="http://100.100.100.30:8081/Authority/Login">[MCNEX PLM]</a>
+    <a href="https://gw.mcnex.com/">[MCNEX 홈페이지]</a>
+    
+    <div id="header">
+        <h1>MCNEX 이미지 계산툴</h1>
+    </div>
+    <div id="contents">
+        <br>
+        <input type="file" id="fileInput" name="file" style="margin-left: 20px;"/>
         <br>
         <br>
+        <div class="imgbox"> 
+            <p>[소스 이미지]</p>
+                <canvas id="canvasDst"></canvas>
+            <p> </p>
+        </div>
+    </div>
+    <div id="footer">
+        <h2>
+            <p id="status">OpenCV 로드중...</p>
+        </h2>
+    </div>
+    <br>
+
+    <script type="text/javascript">
+        function onOpenCvReady() 
+        {
+            document.getElementById('status').innerHTML = 'OpenCV 로드 완료!';
+        }
+
+        let inputElement = document.getElementById('fileInput');
+        let cvsElement = document.getElementById('canvasDst');
+        let canvasPos = cvsElement.getBoundingClientRect();
+        cvsElement.width = 640;
+        cvsElement.height = 480;
+        cvsElement.addEventListener('mousedown', down);
+        cvsElement.addEventListener('mouseup', up);
+        cvsElement.addEventListener('mousemove', move);
+
+        let imageElem = new Image();
+        var imgSrc;
         
-        <input type="file" id="fileInput">
-        <div id = "pictures"></div>
-        
+        inputElement.addEventListener('change', (e) => {
+            imageElem.src = URL.createObjectURL(e.target.files[0]);
+        }, false);
 
-        <!--<img src="./Image/Intro.png" width="480" height="360">-->
-    </body>
-    <script>
-        var fileInput = document.getElementById("fileInput");
-        //값이 변경될때 호출 되는 이벤트 리스너
-        fileInput.addEventListener('change',function(e){
-            var file = e.target.files[0]; //선택된 파일
-            var reader = new FileReader();
-            reader.readAsDataURL(file); //파일을 읽는 메서드 
-
-            reader.onload = function(){
-                var photoFrame = document.createElement("div");
-                photoFrame.style = `background : url(${reader.result}); background-size : 100% 100%`;
-                photoFrame.className = "photoFrame";
-                
-                document.getElementById("pictures").appendChild(photoFrame);
-
-                photoFrame.addEventListener("click",function(){
-                    document.getElementById("pictures").removeChild(photoFrame);
-                    e.target.value = "";
-                })
+        let drawing = false;
+        let startX, startY, moveX, moveY;
+        function down(evt) {
+            drawing = true;
+            try {
+                startX = Math.round(evt.touches[0].clientX - canvasPos.left);
+                startY = Math.round(evt.touches[0].clientY - canvasPos.top);
+            } catch{
+                startX = Math.round(evt.clientX - canvasPos.left);
+                startY = Math.round(evt.clientY - canvasPos.top);
             }
-        })
+            moveX = startX; moveY = startY;
+        }
+        function up(evt) {
+            
+            let resizeSrc = new cv.Mat();
+            cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
+            if (drawing === true) {
+                cv.rectangle(resizeSrc, new cv.Point(startX, startY), new cv.Point(moveX, moveY), new cv.Scalar(0, 255, 0,255), 1);
+            }
+            
+            cv.imshow('canvasDst', resizeSrc);
+            //cv.cvtColor(mat,graymat,cv.COLOR_RGB2GRAY);
+
+            resizeSrc.delete();
+
+
+            moveX = startX; moveY = startY;
+            drawing = false;
+        }
+        function move(evt) {
+            if (drawing == true) {
+                try {
+                    moveX = Math.round(evt.touches[0].clientX - canvasPos.left);
+                    moveY = Math.round(evt.touches[0].clientY - canvasPos.top);
+                } catch{
+                    moveX = Math.round(evt.clientX - canvasPos.left);
+                    moveY = Math.round(evt.clientY - canvasPos.top);
+                }
+                //OpenCV
+                let resizeSrc = new cv.Mat();
+                cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
+                cv.rectangle(resizeSrc, new cv.Point(startX, startY), new cv.Point(moveX, moveY), new cv.Scalar(0, 255, 0,255), 1);
+                cv.imshow('canvasDst', resizeSrc);
+                resizeSrc.delete();
+            }
+        }
+
+        imageElem.onload = function () 
+        {
+            imgSrc = cv.imread(imageElem);            
+            let resizeSrc = new cv.Mat();
+            cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
+            cv.imshow('canvasDst', resizeSrc);
+            resizeSrc.delete();
+        };
 
     </script>
+</body>
 </html>
