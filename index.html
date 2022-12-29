@@ -9,7 +9,7 @@
         
         h1{
             
-            padding-right: 10px;
+            /*padding-left: 20px;*/
         }
         a{
             float:right;
@@ -17,8 +17,9 @@
         }
 
         .imgbox{
-            float:left;
+            /*float:left;*/
             margin-left: 20px;
+            margin-right: 20px;
             padding-left: 20px;
             padding-right: 20px;
             border: 1px solid black;
@@ -48,7 +49,7 @@
     <a href="https://gw.mcnex.com/">[MCNEX 홈페이지]</a>
     
     <div id="header">
-        <h1>MCNEX 이미지 계산툴</h1>
+        <h2 style="padding-left: 20px">MCNEX 이미지 계산툴</h2>
     </div>
     <div id="contents">
         <br>
@@ -56,10 +57,47 @@
         <br>
         <br>
         <div class="imgbox"> 
-            <p>[소스 이미지]</p>
-                <canvas id="canvasDst"></canvas>
+            <br>
+            <b>[분석 이미지]</b>
+            <br>
+            <br>
+            <canvas id="canvasDst"></canvas>
             <p> </p>
         </div>
+        <br>
+        <div class="imgbox" style="height:530px;">
+            <!--분석내용-->
+            <br>
+            <b>[분석 결과]</b>
+            <br>
+            <br>
+            <table border="1" cellpadding="10">
+                <tr>
+                    <td>이미지 사이즈</td>
+                    <td id="imgSrcW" colspan="9"></td>
+                    <td id="imgSrcH" colspan="9"></td>
+                </tr>
+                <tr>
+                    <td>선택 영역 좌표</td>
+                    <td> <b>X1</b></td>
+                    <td id="roiX1" colspan="2"></td>
+                    <td> <b>Y1</b></td>
+                    <td id="roiY1" colspan="2"></td>
+                    <td> <b>X2</b></td>
+                    <td id="roiX2" colspan="2"></td>
+                    <td> <b>Y2</b></td>
+                    <td id="roiY2" colspan="2"></td>
+                    <td> <b>Area</b></td>
+                    <td id="roiArea" colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>선택 영역 평균 밝기값</td>
+                    <td id="roiMeanIntensity" colspan="15"></td>
+
+                </tr>
+            </table>
+        </div>
+            
     </div>
     <div id="footer">
         <h2>
@@ -89,36 +127,28 @@
         inputElement.addEventListener('change', (e) => {
             imageElem.src = URL.createObjectURL(e.target.files[0]);
         }, false);
+        let scrollX = 0,scrollY = 0;
+        window.addEventListener("scroll", (event) => {
+            scrollY = this.scrollY;
+            scrollX = this.scrollX;
+            console.log(scrollY);
+            canvasPos = cvsElement.getBoundingClientRect();
+            //console.log(scrollX);
+        });
 
         let drawing = false;
-        let startX, startY, moveX, moveY;
+        var startX, startY, moveX, moveY;
         function down(evt) {
             drawing = true;
             try {
                 startX = Math.round(evt.touches[0].clientX - canvasPos.left);
                 startY = Math.round(evt.touches[0].clientY - canvasPos.top);
+                console.log(evt.touches[0].clientY);
             } catch{
                 startX = Math.round(evt.clientX - canvasPos.left);
                 startY = Math.round(evt.clientY - canvasPos.top);
             }
             moveX = startX; moveY = startY;
-        }
-        function up(evt) {
-            
-            let resizeSrc = new cv.Mat();
-            cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
-            if (drawing === true) {
-                cv.rectangle(resizeSrc, new cv.Point(startX, startY), new cv.Point(moveX, moveY), new cv.Scalar(0, 255, 0,255), 1);
-            }
-            
-            cv.imshow('canvasDst', resizeSrc);
-            //cv.cvtColor(mat,graymat,cv.COLOR_RGB2GRAY);
-
-            resizeSrc.delete();
-
-
-            moveX = startX; moveY = startY;
-            drawing = false;
         }
         function move(evt) {
             if (drawing == true) {
@@ -137,6 +167,83 @@
                 resizeSrc.delete();
             }
         }
+        function up(evt) {
+            
+            if (startX > moveX)
+            {
+                var tmpX;
+                tmpX = startX;
+                startX = moveX;
+                moveX = tmpX; 
+            }
+            if (startY > moveY)
+            {
+                var tmpY;
+                tmpY = startY;
+                startY = moveY;
+                moveY = tmpY; 
+            }
+            let resizeSrc = new cv.Mat();
+            cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
+            if (drawing === true) {
+                cv.rectangle(resizeSrc, new cv.Point(startX, startY), new cv.Point(moveX, moveY), new cv.Scalar(0, 255, 0,255), 1);
+            }
+            cv.imshow('canvasDst', resizeSrc);
+            resizeSrc.delete();
+
+            var x1 = Math.round(startX * imgSrc.cols / 640);
+            var x2 = Math.round(moveX * imgSrc.cols / 640);
+            var y1 = Math.round(startY * imgSrc.rows / 480);
+            var y2 = Math.round(moveY * imgSrc.rows / 480);
+
+            if (x1 < 0)
+            {
+                x1 = 0;
+            }
+            if (x2 >= imgSrc.cols)
+            {
+                x2 = imgSrc.cols - 1;
+            }
+
+            if (y1 < 0)
+            {
+                y1 = 0;
+            }
+            if (y2 >= imgSrc.rows)
+            {
+                y2 = imgSrc.rows - 1;
+            }
+
+            var graySrc = new cv.Mat();
+            cv.cvtColor(imgSrc,graySrc,cv.COLOR_RGB2GRAY);
+
+            var sumIntensity = 0;
+            var sumArea = 0;
+            for(var j = y1; j <= y2;j++)
+            {
+                for(var i = x1; i <= x2;i++)
+                {
+                    var g = graySrc.ucharAt(j,i);//[y * graySrc.cols + x];
+                    sumIntensity = sumIntensity + parseInt(g);
+                    sumArea++;
+                }
+            }
+            var sumAvr = (sumIntensity / sumArea).toFixed(4);
+
+            graySrc.delete();
+
+            document.getElementById('roiX1').innerHTML = x1;
+            document.getElementById('roiY1').innerHTML = y1;
+            document.getElementById('roiX2').innerHTML = x2;
+            document.getElementById('roiY2').innerHTML = y2;
+            document.getElementById('roiArea').innerHTML = sumArea + "px";
+
+            document.getElementById('roiMeanIntensity').innerHTML = sumAvr + " / 255";
+            
+            moveX = startX; moveY = startY;
+            drawing = false;
+        }
+
 
         imageElem.onload = function () 
         {
@@ -145,6 +252,8 @@
             cv.resize(imgSrc,resizeSrc,new cv.Size(640,480),0,0,cv.INTER_AREA);
             cv.imshow('canvasDst', resizeSrc);
             resizeSrc.delete();
+            document.getElementById('imgSrcW').innerHTML = imgSrc.cols;
+            document.getElementById('imgSrcH').innerHTML = imgSrc.rows;
         };
 
     </script>
